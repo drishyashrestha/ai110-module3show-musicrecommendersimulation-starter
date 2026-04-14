@@ -35,13 +35,13 @@ These screenshots show the Python CLI running in the terminal. The first example
 
 ### CLI run
 
-![CLI output screenshot](../images/cli.png)
+![CLI output screenshot](images/cli.png)
 
 ### Diverse profile CLI runs
 
-![Diverse profile CLI output screenshot 1](../images/diverse_profiles_cli.png)
+![Diverse profile CLI output screenshot 1](images/diverse_profiles_cli.png)
 
-![Diverse profile CLI output screenshot 2](../images/diverse_profiles_cli2.png)
+![Diverse profile CLI output screenshot 2](images/diverse_profiles_cli2.png)
 
 ### Potential biases and limitations (brief)
 
