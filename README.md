@@ -29,6 +29,20 @@ Big streaming apps mix **collaborative** signals (what similar users did), **con
 
 **Why energy is “similarity”:** The user picks a **target** energy on a 0–1 style scale; we reward tracks **near** that value, not tracks that are simply higher or lower overall.
 
+## CLI Screenshots
+
+These screenshots show the Python CLI running in the terminal. The first example shows a normal recommendation run, and the second shows a different profile so you can compare how the rankings change.
+
+### CLI run
+
+![CLI output screenshot](../images/cli.png)
+
+### Diverse profile CLI runs
+
+![Diverse profile CLI output screenshot 1](../images/diverse_profiles_cli.png)
+
+![Diverse profile CLI output screenshot 2](../images/diverse_profiles_cli2.png)
+
 ### Potential biases and limitations (brief)
 
 - **Tiny catalog** — A handful of genres/moods; many real-world styles are missing, so results are not representative of “all music.”
