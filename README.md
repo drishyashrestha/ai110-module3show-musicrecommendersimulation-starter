@@ -77,25 +77,26 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+- **6 user profiles tested** — 3 standard (High-Energy Pop, Chill Lofi, Deep Intense Rock) and 3 adversarial (Genre Ghost with a missing genre, Conflicted Soul with contradicting energy and genre, Whisper Mode at energy 0.0). Each revealed something different about which features dominate under which conditions.
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+- **Weight shift experiment** — Doubled `W_ENERGY` from 2.0 to 4.0 and halved `GENRE_BONUS` from 2.0 to 1.0. Energy became so dominant that songs from the wrong genre still scored near the top as long as their energy was close. Gym Hero moved up for almost every high-energy profile regardless of genre. Rankings changed noticeably but did not feel "better" — just more energy-obsessed.
+
+- **Genre Ghost stress test** — Set genre to "country," which has no songs in the catalog. With nobody earning the +2 genre bonus, the whole ranking flattened and fell back on mood + energy + audio features. Rooftop Lights won because it matched on mood (happy) and was closest in energy — not because it was a good country song. This confirmed that genre is the single biggest differentiator in the current system.
+
+- **Conflicted Soul test** — Set genre to "ambient" but energy to 0.95. The system completely ignored the ambient preference and returned pop and rock songs. No ambient song in the catalog has high energy, so energy similarity (weighted 2×) drowned out the genre and mood signals. The system gave back confident-looking results that made no sense for the stated profile.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
+- Only works on 10 songs — too small to surface real differences between many profiles
+- Lofi is over-represented (3 songs vs. 1 for most other genres), giving lofi users an unfair advantage in scoring
+- Genre matching is exact string matching — "indie pop" and "pop" score as completely different genres
+- The user profile accepts only one genre and one mood — hybrid tastes are not supported
+- No feedback loop — the system never learns from what you actually skip or replay
+- Low-energy or very-high-energy users are penalized when the catalog doesn't reach their target range
 
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+See [model_card.md](model_card.md) for a deeper breakdown of each bias.
 
 ---
 
@@ -105,116 +106,27 @@ Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
+### Profile Pair Comparisons
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+**High-Energy Pop vs. Chill Lofi**
+These two profiles sit at opposite ends of the energy scale — one wants loud, upbeat pop (energy 0.90), the other wants quiet, mellow lofi (energy 0.35). The rankings flipped almost completely: songs that landed in the top 3 for one profile sat near the bottom for the other. This makes sense because energy similarity carries 2× weight in the score. When a song's energy is far from your target, it loses points on every song in the catalog, which is a big gap that genre or mood alone cannot close. What this shows: energy is the strongest continuous filter in the system — pick a target and the algorithm naturally clusters around that range.
+
+**High-Energy Pop vs. Deep Intense Rock**
+Both profiles want high energy (0.90 and 0.92), but they differ on genre and mood. The top results overlapped more than expected — "Gym Hero" appeared in the top 2 for both, despite being pop/intense rather than rock/intense for the rock profile. The reason is that with nearly identical energy levels, the audio features dominate, and Gym Hero's low acousticness and strong danceability make it a near-universal winner for anyone who wants loud, produced tracks. This reveals a weakness: when two users want the same energy level but different genres, the system returns suspiciously similar playlists. Genre is only worth +2 points — a strong audio feature match can easily outweigh it.
+
+**Genre Ghost (country) vs. High-Energy Pop**
+The country profile is a stress test: no song in the catalog is labeled "country," so nobody gets the +2 genre bonus. With genre knocked out entirely, the rankings fell back to mood match + energy similarity + audio features. The top result ("Rooftop Lights") won because it matched on mood (happy) and was close in energy — not because of anything genre-related. Comparing this to High-Energy Pop (where genre gave Sunrise City a decisive edge) shows exactly how much the genre bonus matters: remove it, and mood + energy together can only weakly separate songs that are fairly similar across the board.
+
+**Conflicted Soul vs. Deep Intense Rock**
+Both profiles want high energy (0.95 and 0.92), but Conflicted Soul asks for ambient genre and a relaxed mood — preferences that directly contradict each other in the catalog (ambient songs are all quiet). The result: the system completely ignored the ambient and relaxed preferences and returned the same high-energy pop and rock songs as the rock profile. This is a filter bubble. The user described themselves as an ambient/relaxed listener but got an intense pop playlist — because energy similarity, weighted at 2×, drowned out the genre and mood signals when those signals had no good match in the catalog.
+
+**Whisper Mode vs. Chill Lofi**
+Both profiles prefer acoustic sounds, but Whisper Mode sets energy to 0.0 — far below anything in the catalog (minimum: 0.28). Chill Lofi sets energy to 0.35, which closely matches the quietest songs. The difference was stark: Chill Lofi got near-perfect energy scores on Library Rain and Midnight Coding; Whisper Mode was penalized on every single song because the catalog simply doesn't have songs that quiet. The top result for Whisper Mode was Coffee Shop Stories (jazz, energy 0.37) — not because it matched the 0.0 target, but because it was the least wrong option. This shows that when a user's preference falls outside the catalog's range, the system still returns *something* without any indication that nothing is actually a good match.
+
+### What I Learned
+
+Building this recommender made it clear that a scoring system is not neutral — every number you choose (how much to reward genre vs. energy vs. mood) is a decision that advantages some users and disadvantages others. The lofi listener gets three genre matches; the rock listener gets one. The person who wants very quiet music gets penalized by a catalog that doesn't go that low. Real recommender systems face the same problem at a much larger scale: the training data, the feature weights, and even the mood labels all reflect choices made by people, and those choices determine whose taste the system serves well. Understanding that a "recommendation" is the output of arithmetic — not intuition — changes how you think about why an app keeps showing you the same kind of songs.
 
 
----
 
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-## 1. Model Name
-
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
-
----
-
-## 2. Intended Use
-
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
-
----
-
-## 3. How It Works (Short Explanation)
-
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
-
----
-
-## 4. Data
-
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
-
----
-
-## 5. Strengths
-
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
-
----
-
-## 6. Limitations and Bias
-
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
-
----
-
-## 7. Evaluation
-
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
-
----
-
-## 8. Future Work
-
-If you had more time, how would you improve this recommender
-
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
-
----
-
-## 9. Personal Reflection
-
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
 
