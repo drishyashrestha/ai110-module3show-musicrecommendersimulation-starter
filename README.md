@@ -2,32 +2,41 @@
 
 ## Project Summary
 
-In this project you will build and explain a small music recommender system.
+This is my **Music Recommender Simulation** (Module 3). I represent each song and a small **taste profile** as data, define a **scoring rule** that turns those into a match score, **rank** the catalog, and reflect on how that compares to real recommenders. The system is **content-based only** (no “users like you” signals): it reads `data/songs.csv`, compares each row’s features to the user’s stated genre, mood, target energy, and acoustic preference, then returns the top matches—with optional short explanations. It is for **learning and demonstration**, not a production music app.
 
-Your goal is to:
-
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
-
----
 
 ## How The System Works
 
-Explain your design in plain language.
+Big streaming apps mix **collaborative** signals (what similar users did), **content** (what the track is like), and **context** (time, device, session). This project is intentionally smaller: a **content-based** recommender. It compares each song’s row in the CSV to what the user asked for. There is no “people like you also listened to…” step.
 
-Some prompts to answer:
+**Pipeline in plain language:** read songs → build a user profile from a small dictionary → for each song compute a **numeric match score** → **sort** high to low → return the top *k*. The CLI path uses `load_songs`, `recommend_songs`, and dict rows; the class-based tests use `Song`, `UserProfile`, and `Recommender.recommend` with the same scoring idea.
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+**What the score emphasizes:** genre and mood matches add fixed points (genre weighted a bit higher than mood). **Energy** is scored by **closeness** to the user’s target (similar intensity wins; it is not “always pick the loudest track”). **Acoustic** taste nudges toward more or less acoustic productions. **Valence, tempo, and danceability** add smaller amounts using mood-shaped targets so extra columns in the CSV still matter without overpowering genre and mood.
 
-You can include a simple diagram or bullet list if helpful.
+### Algorithm recipe (finalized point weights)
+
+| Rule | Points |
+|------|--------|
+| Genre match (exact string, case-insensitive) | +2.0 |
+| Mood match | +1.0 |
+| Energy similarity | 2.0 × (1 − \|song.energy − your target energy\|), max 2.0 |
+| Acoustic preference | If you like acoustic: 1.5 × song.acousticness; else: 1.5 × (1 − acousticness); max 1.5 |
+| Valence, tempo, danceability vs mood-based targets | 0.5 × (1 − \|difference\|) each (tempo uses BPM/200 vs a target “norm”); max 1.5 combined |
+
+**Ranking:** total score, highest first; tie-break by song `id` (stable, predictable).
+
+**Why genre > mood here:** In `songs.csv`, the same **mood** can appear on several rows (e.g. multiple “chill” tracks), while **genre** splits the catalog more narrowly, so I give genre a slightly larger bonus (+2 vs +1).
+
+**Why energy is “similarity”:** The user picks a **target** energy on a 0–1 style scale; we reward tracks **near** that value, not tracks that are simply higher or lower overall.
+
+### Potential biases and limitations (brief)
+
+- **Tiny catalog** — A handful of genres/moods; many real-world styles are missing, so results are not representative of “all music.”
+- **Who labeled the data?** Genre and mood are **subjective**; bad or inconsistent tags skew scores.
+- **One genre, one mood** — The profile cannot say “I like both X and Y,” so some users are poorly modeled.
+- **Weighting choices** — Favoring genre over mood (or the chosen constants) **steers** who gets recommended; different weights would change exposure across rows.
+- **No feedback loop** — Unlike real apps, this system does not learn from skips or replays; it only reflects the fixed CSV and the stated prefs.
+
 
 ---
 
